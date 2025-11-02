@@ -1,342 +1,346 @@
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
-import javax.imageio.ImageIO;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
-public class VirtualGallery extends Frame {
+/**
+ * Modernized Swing-based VirtualGallery (keeps existing Artwork model)
+ */
+public class VirtualGallery extends JFrame {
     private ArrayList<Artwork> artworks;
     private int currentIndex = 0;
-    private Canvas artCanvas;
-    private Panel controlPanel;
-    private Panel infoPanel;
-    private Label titleLabel;
-    private Label artistLabel;
-    private Label descriptionLabel;
-    private Button prevButton, nextButton, zoomInButton, zoomOutButton;
+    private ArtPanel artPanel;
+    private JPanel infoPanel;
+    private JLabel titleLabel;
+    private JLabel artistLabel;
+    private JLabel descriptionLabel;
+    private JButton prevButton, nextButton, zoomInButton, zoomOutButton;
     private double zoomLevel = 1.0;
-    
+
     public VirtualGallery() {
         super("Virtual Art Gallery");
-        
-        // Initialize artwork collection
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // Initialize data
         initializeArtworks();
-        
-        // Setup the frame
-        setLayout(new BorderLayout(10, 10));
-        setBackground(new Color(240, 240, 240));
-        
-        // Create components
-        createArtCanvas();
-        createInfoPanel();
-        createControlPanel();
-        
-        // Add window listener
-        addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent we) {
-                dispose();
-                System.exit(0);
-            }
-        });
-        
-        // Set frame properties
-        setSize(1000, 700);
+
+        // Build UI
+        buildUI();
+
+        setSize(1100, 720);
         setLocationRelativeTo(null);
         setVisible(true);
-        
-        // Display first artwork
+
         displayCurrentArtwork();
     }
-    
-    private void initializeArtworks() {
-        artworks = new ArrayList<>();
-        
-        // Add sample artworks with generated images
-        artworks.add(new Artwork("Abstract Sunset", "Digital Artist 1", 
-            "A beautiful abstract representation of sunset colors", 
-            createSampleImage(1)));
-        
-        artworks.add(new Artwork("Geometric Harmony", "Digital Artist 2", 
-            "Modern geometric patterns in vibrant colors", 
-            createSampleImage(2)));
-        
-        artworks.add(new Artwork("Ocean Dreams", "Digital Artist 3", 
-            "Serene ocean waves with gradient blues", 
-            createSampleImage(3)));
-        
-        artworks.add(new Artwork("Digital Forest", "Digital Artist 4", 
-            "Abstract forest with digital textures", 
-            createSampleImage(4)));
-        
-        artworks.add(new Artwork("Cosmic Journey", "Digital Artist 5", 
-            "Space-inspired digital artwork", 
-            createSampleImage(5)));
+
+    private void buildUI() {
+        getContentPane().setBackground(new Color(245, 246, 250));
+        setLayout(new BorderLayout(12, 12));
+
+        // Header
+        JPanel header = new JPanel();
+        header.setBackground(new Color(22, 29, 35));
+        header.setPreferredSize(new Dimension(0, 72));
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        JLabel h1 = new JLabel("Virtual Art Gallery");
+        h1.setForeground(new Color(235, 239, 242));
+        h1.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        h1.setAlignmentX(CENTER_ALIGNMENT);
+        JLabel sub = new JLabel("A minimal, elegant viewing experience");
+        sub.setForeground(new Color(170, 180, 190));
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        sub.setAlignmentX(CENTER_ALIGNMENT);
+        header.add(Box.createVerticalGlue());
+        header.add(h1);
+        header.add(sub);
+        header.add(Box.createVerticalGlue());
+        add(header, BorderLayout.NORTH);
+
+        // Center art panel
+        artPanel = new ArtPanel();
+        artPanel.setBackground(new Color(24, 28, 32));
+        add(artPanel, BorderLayout.CENTER);
+
+        // Info + controls at bottom
+        JPanel bottom = new JPanel();
+        bottom.setLayout(new BorderLayout(10, 10));
+        bottom.setOpaque(false);
+
+        createInfoPanel();
+        bottom.add(infoPanel, BorderLayout.CENTER);
+        createControlPanel();
+        JPanel controls = new JPanel();
+        controls.setOpaque(false);
+        controls.add(prevButton);
+        controls.add(zoomOutButton);
+        controls.add(zoomInButton);
+        controls.add(nextButton);
+        bottom.add(controls, BorderLayout.SOUTH);
+
+        add(bottom, BorderLayout.SOUTH);
+
+        // Key bindings
+        setupKeyBindings();
     }
-    
-    private BufferedImage createSampleImage(int type) {
-        BufferedImage img = new BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = img.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
-        switch(type) {
-            case 1: // Abstract Sunset
-                GradientPaint gradient1 = new GradientPaint(0, 0, new Color(255, 140, 0),
-                    0, 400, new Color(255, 69, 0));
-                g2d.setPaint(gradient1);
-                g2d.fillRect(0, 0, 600, 400);
-                g2d.setColor(new Color(255, 215, 0, 180));
-                for (int i = 0; i < 10; i++) {
-                    g2d.fillOval(50 + i * 50, 100 + i * 20, 100, 100);
-                }
-                break;
-                
-            case 2: // Geometric Harmony
-                g2d.setColor(new Color(50, 50, 50));
-                g2d.fillRect(0, 0, 600, 400);
-                Color[] colors = {Color.CYAN, Color.MAGENTA, Color.YELLOW, Color.GREEN};
-                for (int i = 0; i < 4; i++) {
-                    g2d.setColor(new Color(colors[i].getRed(), colors[i].getGreen(), 
-                        colors[i].getBlue(), 150));
-                    g2d.fillPolygon(
-                        new int[]{100 + i * 100, 200 + i * 100, 150 + i * 100},
-                        new int[]{300, 300, 100},
-                        3
-                    );
-                }
-                break;
-                
-            case 3: // Ocean Dreams
-                GradientPaint gradient2 = new GradientPaint(0, 0, new Color(0, 191, 255),
-                    0, 400, new Color(0, 0, 139));
-                g2d.setPaint(gradient2);
-                g2d.fillRect(0, 0, 600, 400);
-                g2d.setColor(new Color(255, 255, 255, 100));
-                for (int i = 0; i < 5; i++) {
-                    g2d.fillArc(0, 50 + i * 80, 600, 50, 0, 180);
-                }
-                break;
-                
-            case 4: // Digital Forest
-                GradientPaint gradient3 = new GradientPaint(0, 0, new Color(34, 139, 34),
-                    0, 400, new Color(0, 100, 0));
-                g2d.setPaint(gradient3);
-                g2d.fillRect(0, 0, 600, 400);
-                g2d.setColor(new Color(139, 69, 19));
-                for (int i = 0; i < 8; i++) {
-                    g2d.fillRect(50 + i * 70, 200, 30, 200);
-                    g2d.setColor(new Color(0, 128, 0, 180));
-                    g2d.fillOval(35 + i * 70, 150, 60, 80);
-                    g2d.setColor(new Color(139, 69, 19));
-                }
-                break;
-                
-            case 5: // Cosmic Journey
-                g2d.setColor(Color.BLACK);
-                g2d.fillRect(0, 0, 600, 400);
-                // Stars
-                g2d.setColor(Color.WHITE);
-                for (int i = 0; i < 100; i++) {
-                    int x = (int)(Math.random() * 600);
-                    int y = (int)(Math.random() * 400);
-                    g2d.fillOval(x, y, 2, 2);
-                }
-                // Planets
-                GradientPaint planetGrad = new GradientPaint(200, 150, new Color(255, 100, 0),
-                    250, 200, new Color(200, 50, 0));
-                g2d.setPaint(planetGrad);
-                g2d.fillOval(200, 150, 100, 100);
-                
-                g2d.setPaint(new GradientPaint(400, 250, new Color(100, 100, 255),
-                    450, 300, new Color(50, 50, 200)));
-                g2d.fillOval(400, 250, 80, 80);
-                break;
-        }
-        
-        g2d.dispose();
-        return img;
-    }
-    
-    private void createArtCanvas() {
-        artCanvas = new Canvas() {
-            public void paint(Graphics g) {
-                if (artworks.size() > 0) {
-                    Artwork current = artworks.get(currentIndex);
-                    BufferedImage img = current.getImage();
-                    
-                    int canvasWidth = getWidth();
-                    int canvasHeight = getHeight();
-                    
-                    // Calculate scaled dimensions
-                    int imgWidth = (int)(img.getWidth() * zoomLevel);
-                    int imgHeight = (int)(img.getHeight() * zoomLevel);
-                    
-                    // Center the image
-                    int x = (canvasWidth - imgWidth) / 2;
-                    int y = (canvasHeight - imgHeight) / 2;
-                    
-                    // Draw background
-                    g.setColor(new Color(30, 30, 30));
-                    g.fillRect(0, 0, canvasWidth, canvasHeight);
-                    
-                    // Draw image
-                    g.drawImage(img, x, y, imgWidth, imgHeight, this);
-                    
-                    // Draw border around image
-                    g.setColor(Color.WHITE);
-                    ((Graphics2D)g).setStroke(new BasicStroke(2));
-                    g.drawRect(x - 2, y - 2, imgWidth + 4, imgHeight + 4);
-                }
-            }
-        };
-        artCanvas.setBackground(new Color(30, 30, 30));
-        add(artCanvas, BorderLayout.CENTER);
-    }
-    
+
     private void createInfoPanel() {
-        infoPanel = new Panel();
-        infoPanel.setLayout(new GridLayout(4, 1, 5, 5));
-        infoPanel.setBackground(new Color(250, 250, 250));
-        
-        Label heading = new Label("Artwork Information", Label.CENTER);
-        heading.setFont(new Font("Arial", Font.BOLD, 16));
-        heading.setForeground(new Color(50, 50, 50));
-        
-        titleLabel = new Label("", Label.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        titleLabel.setForeground(new Color(0, 100, 200));
-        
-        artistLabel = new Label("", Label.CENTER);
-        artistLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        
-        descriptionLabel = new Label("", Label.CENTER);
-        descriptionLabel.setFont(new Font("Arial", Font.ITALIC, 11));
-        
-        infoPanel.add(heading);
+        infoPanel = new JPanel();
+        infoPanel.setOpaque(true);
+        infoPanel.setBackground(new Color(250, 250, 252));
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+
+        titleLabel = new JLabel("");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setForeground(new Color(20, 40, 60));
+        titleLabel.setAlignmentX(LEFT_ALIGNMENT);
+
+        artistLabel = new JLabel("");
+        artistLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        artistLabel.setForeground(new Color(90, 100, 110));
+        artistLabel.setAlignmentX(LEFT_ALIGNMENT);
+
+        descriptionLabel = new JLabel("");
+        descriptionLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        descriptionLabel.setForeground(new Color(120, 125, 130));
+        descriptionLabel.setAlignmentX(LEFT_ALIGNMENT);
+
         infoPanel.add(titleLabel);
         infoPanel.add(artistLabel);
         infoPanel.add(descriptionLabel);
-        
-        add(infoPanel, BorderLayout.NORTH);
     }
-    
+
     private void createControlPanel() {
-        controlPanel = new Panel();
-        controlPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        controlPanel.setBackground(new Color(200, 200, 200));
-        
-        prevButton = new Button("◄ Previous");
-        prevButton.setFont(new Font("Arial", Font.BOLD, 12));
-        prevButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                previousArtwork();
-            }
+        prevButton = new JButton("◄");
+        prevButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        prevButton.setBackground(new Color(40, 50, 60));
+        prevButton.setForeground(new Color(235, 239, 242));
+        prevButton.setFocusPainted(false);
+        prevButton.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        prevButton.addActionListener(e -> previousArtwork());
+
+        nextButton = new JButton("►");
+        nextButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        nextButton.setBackground(new Color(40, 50, 60));
+        nextButton.setForeground(new Color(235, 239, 242));
+        nextButton.setFocusPainted(false);
+        nextButton.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        nextButton.addActionListener(e -> nextArtwork());
+
+        zoomInButton = new JButton("＋");
+        zoomInButton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        zoomInButton.setBackground(new Color(200, 205, 210));
+        zoomInButton.setFocusPainted(false);
+        zoomInButton.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+        zoomInButton.addActionListener(e -> zoomIn());
+
+        zoomOutButton = new JButton("－");
+        zoomOutButton.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        zoomOutButton.setBackground(new Color(200, 205, 210));
+        zoomOutButton.setFocusPainted(false);
+        zoomOutButton.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+        zoomOutButton.addActionListener(e -> zoomOut());
+    }
+
+    private void setupKeyBindings() {
+        // Use root pane input map for simple navigation
+        getRootPane().getInputMap().put(javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "prev");
+        getRootPane().getActionMap().put("prev", new javax.swing.AbstractAction() {
+            public void actionPerformed(ActionEvent e) { previousArtwork(); }
         });
-        
-        nextButton = new Button("Next ►");
-        nextButton.setFont(new Font("Arial", Font.BOLD, 12));
-        nextButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                nextArtwork();
-            }
+        getRootPane().getInputMap().put(javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "next");
+        getRootPane().getActionMap().put("next", new javax.swing.AbstractAction() {
+            public void actionPerformed(ActionEvent e) { nextArtwork(); }
         });
-        
-        zoomInButton = new Button("Zoom In (+)");
-        zoomInButton.setFont(new Font("Arial", Font.PLAIN, 12));
-        zoomInButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                zoomIn();
-            }
+        getRootPane().getInputMap().put(javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_PLUS, 0), "zoomIn");
+        getRootPane().getActionMap().put("zoomIn", new javax.swing.AbstractAction() {
+            public void actionPerformed(ActionEvent e) { zoomIn(); }
         });
-        
-        zoomOutButton = new Button("Zoom Out (-)");
-        zoomOutButton.setFont(new Font("Arial", Font.PLAIN, 12));
-        zoomOutButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                zoomOut();
-            }
+        getRootPane().getInputMap().put(javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, 0), "zoomIn");
+        getRootPane().getInputMap().put(javax.swing.KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, 0), "zoomOut");
+        getRootPane().getActionMap().put("zoomOut", new javax.swing.AbstractAction() {
+            public void actionPerformed(ActionEvent e) { zoomOut(); }
         });
-        
-        Label countLabel = new Label("Use arrow keys to navigate", Label.CENTER);
-        countLabel.setFont(new Font("Arial", Font.ITALIC, 10));
-        
-        controlPanel.add(prevButton);
-        controlPanel.add(zoomOutButton);
-        controlPanel.add(zoomInButton);
-        controlPanel.add(nextButton);
-        controlPanel.add(countLabel);
-        
-        add(controlPanel, BorderLayout.SOUTH);
-        
-        // Add keyboard navigation
-        addKeyListener(new KeyAdapter() {
-            public void keyPressed(KeyEvent e) {
-                switch(e.getKeyCode()) {
-                    case KeyEvent.VK_LEFT:
-                        previousArtwork();
-                        break;
-                    case KeyEvent.VK_RIGHT:
-                        nextArtwork();
-                        break;
-                    case KeyEvent.VK_PLUS:
-                    case KeyEvent.VK_EQUALS:
-                        zoomIn();
-                        break;
-                    case KeyEvent.VK_MINUS:
-                        zoomOut();
-                        break;
+    }
+
+    private void initializeArtworks() {
+        artworks = new ArrayList<>();
+        artworks.add(new Artwork("Abstract Sunset", "Digital Artist 1",
+                "A beautiful abstract representation of sunset colors",
+                createSampleImage(1)));
+        artworks.add(new Artwork("Geometric Harmony", "Digital Artist 2",
+                "Modern geometric patterns in vibrant colors",
+                createSampleImage(2)));
+        artworks.add(new Artwork("Ocean Dreams", "Digital Artist 3",
+                "Serene ocean waves with gradient blues",
+                createSampleImage(3)));
+        artworks.add(new Artwork("Digital Forest", "Digital Artist 4",
+                "Abstract forest with digital textures",
+                createSampleImage(4)));
+        artworks.add(new Artwork("Cosmic Journey", "Digital Artist 5",
+                "Space-inspired digital artwork",
+                createSampleImage(5)));
+    }
+
+    private BufferedImage createSampleImage(int type) {
+        // Reuse the same visuals from the older implementation
+        BufferedImage img = new BufferedImage(800, 520, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = img.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        switch (type) {
+            case 1:
+                java.awt.GradientPaint gradient1 = new java.awt.GradientPaint(0, 0, new Color(255, 140, 0), 0, 520, new Color(255, 69, 0));
+                g2d.setPaint(gradient1);
+                g2d.fillRect(0, 0, 800, 520);
+                g2d.setColor(new Color(255, 215, 0, 160));
+                for (int i = 0; i < 10; i++) g2d.fillOval(60 + i * 60, 140 + i * 24, 120, 120);
+                break;
+            case 2:
+                g2d.setColor(new Color(40, 44, 52));
+                g2d.fillRect(0, 0, 800, 520);
+                Color[] colors = {Color.CYAN, Color.MAGENTA, Color.YELLOW, Color.GREEN};
+                for (int i = 0; i < 4; i++) {
+                    g2d.setColor(new Color(colors[i].getRed(), colors[i].getGreen(), colors[i].getBlue(), 160));
+                    g2d.fillPolygon(new int[]{120 + i * 140, 260 + i * 140, 190 + i * 140}, new int[]{420, 420, 140}, 3);
                 }
-            }
-        });
-    }
-    
-    private void displayCurrentArtwork() {
-        if (artworks.size() > 0) {
-            Artwork current = artworks.get(currentIndex);
-            titleLabel.setText("Title: " + current.getTitle());
-            artistLabel.setText("Artist: " + current.getArtist());
-            descriptionLabel.setText(current.getDescription());
-            
-            // Reset zoom when changing artwork
-            zoomLevel = 1.0;
-            artCanvas.repaint();
-            
-            // Update button states
-            prevButton.setEnabled(currentIndex > 0);
-            nextButton.setEnabled(currentIndex < artworks.size() - 1);
+                break;
+            case 3:
+                java.awt.GradientPaint gradient2 = new java.awt.GradientPaint(0, 0, new Color(0, 191, 255), 0, 520, new Color(0, 0, 139));
+                g2d.setPaint(gradient2);
+                g2d.fillRect(0, 0, 800, 520);
+                g2d.setColor(new Color(255, 255, 255, 100));
+                for (int i = 0; i < 6; i++) g2d.fillArc(0, 60 + i * 90, 800, 80, 0, 180);
+                break;
+            case 4:
+                java.awt.GradientPaint gradient3 = new java.awt.GradientPaint(0, 0, new Color(34, 139, 34), 0, 520, new Color(0, 100, 0));
+                g2d.setPaint(gradient3);
+                g2d.fillRect(0, 0, 800, 520);
+                g2d.setColor(new Color(139, 69, 19));
+                for (int i = 0; i < 9; i++) {
+                    g2d.fillRect(60 + i * 80, 260, 30, 320);
+                    g2d.setColor(new Color(0, 128, 0, 180));
+                    g2d.fillOval(50 + i * 80, 200, 70, 90);
+                    g2d.setColor(new Color(139, 69, 19));
+                }
+                break;
+            default:
+                g2d.setColor(Color.BLACK);
+                g2d.fillRect(0, 0, 800, 520);
+                g2d.setColor(Color.WHITE);
+                for (int i = 0; i < 160; i++) g2d.fillOval((int) (Math.random() * 800), (int) (Math.random() * 520), 2, 2);
+                break;
         }
+
+        g2d.dispose();
+        return img;
     }
-    
+
+    private void displayCurrentArtwork() {
+        if (artworks.size() == 0) return;
+        Artwork current = artworks.get(currentIndex);
+        titleLabel.setText(current.getTitle());
+        artistLabel.setText("by " + current.getArtist());
+        descriptionLabel.setText(current.getDescription());
+        zoomLevel = 1.0;
+        updateButtons();
+        artPanel.repaint();
+    }
+
+    private void updateButtons() {
+        prevButton.setEnabled(currentIndex > 0);
+        nextButton.setEnabled(currentIndex < artworks.size() - 1);
+    }
+
     private void previousArtwork() {
         if (currentIndex > 0) {
             currentIndex--;
             displayCurrentArtwork();
         }
     }
-    
+
     private void nextArtwork() {
         if (currentIndex < artworks.size() - 1) {
             currentIndex++;
             displayCurrentArtwork();
         }
     }
-    
+
     private void zoomIn() {
         if (zoomLevel < 3.0) {
-            zoomLevel += 0.2;
-            artCanvas.repaint();
+            zoomLevel += 0.15;
+            artPanel.repaint();
         }
     }
-    
+
     private void zoomOut() {
         if (zoomLevel > 0.4) {
-            zoomLevel -= 0.2;
-            artCanvas.repaint();
+            zoomLevel -= 0.15;
+            artPanel.repaint();
         }
     }
-    
+
+    private class ArtPanel extends JPanel {
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g2.setColor(new Color(24, 28, 32));
+            g2.fillRect(0, 0, getWidth(), getHeight());
+
+            if (artworks.size() == 0) {
+                g2.setColor(new Color(200, 200, 200));
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 20));
+                String msg = "No Artworks Available";
+                int sw = g2.getFontMetrics().stringWidth(msg);
+                g2.drawString(msg, (getWidth() - sw) / 2, getHeight() / 2);
+                g2.dispose();
+                return;
+            }
+
+            Artwork current = artworks.get(currentIndex);
+            BufferedImage img = current.getImage();
+            if (img == null) return;
+
+            int iw = (int) (img.getWidth() * zoomLevel);
+            int ih = (int) (img.getHeight() * zoomLevel);
+
+            int x = (getWidth() - iw) / 2;
+            int y = (getHeight() - ih) / 2;
+
+            g2.drawImage(img, x, y, iw, ih, null);
+
+            // white frame
+            g2.setColor(new Color(255, 255, 255, 200));
+            g2.drawRect(x - 4, y - 4, iw + 8, ih + 8);
+
+            g2.dispose();
+        }
+    }
+
     public static void main(String[] args) {
-        new VirtualGallery();
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {}
+        SwingUtilities.invokeLater(() -> new VirtualGallery());
     }
 }

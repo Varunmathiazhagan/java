@@ -107,30 +107,35 @@ public class DatabaseManager {
     public ArrayList<ArtworkWithId> getAllArtworks() {
         ArrayList<ArtworkWithId> artworks = new ArrayList<>();
         String sql = "SELECT id, title, artist, description, image_data FROM artworks ORDER BY id";
-        
+
+        if (connection == null) {
+            System.err.println("No database connection available - returning empty artwork list");
+            return artworks;
+        }
+
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-            
+
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String title = rs.getString("title");
                 String artist = rs.getString("artist");
                 String description = rs.getString("description");
                 byte[] imageBytes = rs.getBytes("image_data");
-                
+
                 // Convert byte array to BufferedImage
                 BufferedImage image = bytesToImage(imageBytes);
-                
+
                 ArtworkWithId artwork = new ArtworkWithId(id, title, artist, description, image);
                 artworks.add(artwork);
             }
-            
+
             System.out.println("Retrieved " + artworks.size() + " artworks from database");
         } catch (SQLException | IOException e) {
             System.err.println("Error retrieving artworks!");
             e.printStackTrace();
         }
-        
+
         return artworks;
     }
     
